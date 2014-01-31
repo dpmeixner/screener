@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export DJANGO_SETTINGS_MODULE=settings
-export PYTHONPATH=/home/david/workdir/personal/pysec-master
+export PYTHONPATH=~/pysec
 
 python manage.py syncdb
 python manage.py sec_import_index
