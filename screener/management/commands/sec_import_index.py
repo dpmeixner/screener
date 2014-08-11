@@ -5,6 +5,7 @@ from django.conf import settings
 import urllib,os,re,os.path
 from zipfile import ZipFile
 import time
+from django.db.transaction import commit_on_success
 
 DATA_DIR = settings.DATA_DIR
 def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
@@ -29,7 +30,6 @@ def get_filing_list(year,qtr):
     zip=ZipFile(fn)
     zdata=zip.read('company.idx')
     zdata = removeNonAscii(zdata)
-    
     # Parse the fixed-length fields
     result=[]
     # DM: edited this, remove '3010' to change back to [10:]:
@@ -47,9 +47,17 @@ def get_filing_list(year,qtr):
                 'filename':r[98:].strip()}
 
         result.append(Index(**filing))
-
     return result
 
+#Commit all objects at once to speed up the process
+@commit_on_success
+def commitObjs(objs):
+    for obj in objs:
+        try:
+            obj.save()
+        except:
+            print 'error: %s' % obj
+            pass
 
 class Command(NoArgsCommand):
     help = "Download new files representing one month of 990s, ignoring months we already have. Each quarter contains hundreds of thousands of filings; will take a while to run. "
@@ -73,12 +81,7 @@ class Command(NoArgsCommand):
             quarter = "%s%s" % (year,qtr)
             Index.objects.filter(quarter=quarter).delete()
             objs = get_filing_list(year,qtr)
-            for obj in objs:
-                try:
-                    obj.save()
-                except:
-                    print 'error: %s' % obj
-                    pass
+            commitObjs(objs)
             qtr -= 1
             if qtr==0:
                qtr = 4
