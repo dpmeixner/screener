@@ -155,7 +155,8 @@ def insertXBRL():
 
         if x is None:
             filing.error = 'XBRL file DNE'
-            filing.save()
+            # TODO: when run on BBB, database is locked and this errors out
+            #filing.save()
             continue;
 
         filing.save()
