@@ -4,6 +4,7 @@ import sys
 import urllib
 import socket
 import re
+from pysec.models import Index as pysec_index
 from screener.models import *
 
 # Define a context manager to suppress stdout and stderr.
@@ -51,31 +52,33 @@ def outputCounter(count):
 def prune():
 
     # get unique list of ciks
-    ciks = set(Index.objects.values_list('cik'))
-    print '# of filings before pruning: ', Index.objects.count()
+    ciks = set(pysec_index.objects.values_list('cik'))
+    print '# of filings before pruning: ', pysec_index.objects.count()
     for cik in ciks:
-        filings = Index.objects.filter(cik = cik[0])
+        filings = pysec_index.objects.filter(cik = cik[0])
         dates = filings.values_list('date')
         # only keep the most recent
-        Index.objects.filter(cik = cik[0]).exclude(date = max(dates)[0]).delete()
-    print '# of filings after pruning: ', Index.objects.count()
+        pysec_index.objects.filter(cik = cik[0]).exclude(date = max(dates)[0]).delete()
+    print '# of filings after pruning: ', pysec_index.objects.count()
 
 def insertFinancials():
 
    count = 1
    socket.setdefaulttimeout(30)
-   ciks = Index.objects.values_list('cik')
+   ciks = pysec_index.objects.values_list('cik')
 
    for cik in ciks:
        
        outputCounter(count)
 
        # The cik should be unique in the table
-       try:
-           filing = Index.objects.get(cik=cik[0])
-       except:
+       filing = Index.objects.filter(cik=cik[0])
+       if filing.count() == 0:
+           # This cik does not exist, so create it
+           filing = Index(cik=cik[0])
+       elif filing.count > 1:
            #TODO: would be more appropriate to remove duplicate cik records in prune()
-           filing = Index.objects.filter(cik=cik[0])[0]
+           filing = filing[0]
        count += 1
 
        # Get the ticker, only if it doesn't exist
@@ -126,7 +129,7 @@ def insertFinancials():
 
 def insertXBRL():
 
-    ciks = Index.objects.values_list('cik')
+    ciks = pysec_index.objects.values_list('cik')
     socket.setdefaulttimeout(30)
 
     count = 1
@@ -136,9 +139,9 @@ def insertXBRL():
         #print 'cik is ', cik[0]
         #TODO: figure out how to handle multiple records with same cik, this is not optimal
         try:
-            filing = Index.objects.get(cik=cik[0])
+            filing = pysec_index.objects.get(cik=cik[0])
         except:
-            filing = Index.objects.filter(cik=cik[0])[0]
+            filing = pysec_index.objects.filter(cik=cik[0])[0]
 
         # initialize XBRL parser and populate assets and liability information
         #TODO: investigate what is causing the exception when xbrl data exists
@@ -149,17 +152,17 @@ def insertXBRL():
             if count > 35*24: # keep first 840 on harddisk for debug purposes
                 filing.rmlocalcik()
         except:
-            filing.error = 'XBRL filing exception'
-            filing.save()
+            #filing.error = 'XBRL filing exception'
+            #filing.save()
             continue
 
         if x is None:
-            filing.error = 'XBRL file DNE'
+            #filing.error = 'XBRL file DNE'
             # TODO: when run on BBB, database is locked and this errors out
             #filing.save()
             continue;
 
-        filing.save()
+        #filing.save()
 
         # Sometimes this field is null, which throws an exception. This is a 
         # quick fix, but worth investigating further

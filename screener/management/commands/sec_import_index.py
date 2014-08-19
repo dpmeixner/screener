@@ -1,5 +1,5 @@
 import sys
-from screener.models import *
+from pysec.models import *
 from django.core.management.base import NoArgsCommand
 from django.conf import settings
 import urllib,os,re,os.path
