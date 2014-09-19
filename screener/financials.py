@@ -149,7 +149,7 @@ def insertXBRL():
             # output will still go to a file if redirected there (instead of stdout)
             with suppress_stdout_stderr():
                 x = filing.xbrl()
-            if count > 35*24: # keep first 840 on harddisk for debug purposes
+            if count > 100: # keep first 100 on harddisk for debug purposes
                 filing.rmlocalcik()
         except:
             #filing.error = 'XBRL filing exception'
