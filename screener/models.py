@@ -5,7 +5,7 @@ import shutil
 from pysec.models import Index
 from django.db import models
 
-#class Index(models.Model):
+class Index(models.Model):
 
     ticker = models.CharField(max_length=6,blank=True)
     cik = models.IntegerField()
