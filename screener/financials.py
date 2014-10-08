@@ -149,12 +149,21 @@ def insertXBRL():
             # output will still go to a file if redirected there (instead of stdout)
             with suppress_stdout_stderr():
                 x = filing.xbrl()
-            if count > 100: # keep first 100 on harddisk for debug purposes
-                filing.rmlocalcik()
         except:
+            if count > 100: # keep first 100 on harddisk for debug purposes
+                try:
+                    Index.objects.get(cik=cik[0]).rmlocalcik()
+                except:
+                    Index.objects.filter(cik=cik[0])[0].rmlocalcik()
             #filing.error = 'XBRL filing exception'
             #filing.save()
             continue
+        else:
+            if count > 100:
+                try:
+                    Index.objects.get(cik=cik[0]).rmlocalcik()
+                except:
+                    Index.objects.filter(cik=cik[0])[0].rmlocalcik()
 
         if x is None:
             #filing.error = 'XBRL file DNE'
