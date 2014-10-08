@@ -5,6 +5,10 @@ import shutil
 from pysec.models import Index
 from django.db import models
 
+'''Part of quick fix mentioned below for localcik'''
+from django.conf import settings
+DATA_DIR = settings.DATA_DIR
+
 class Index(models.Model):
 
     ticker = models.CharField(max_length=6,blank=True)
@@ -109,7 +113,6 @@ class Index(models.Model):
             print "Unexpected error removing cik dir:", sys.exc_info()
             pass
 
-
     #TODO: Modify this to specify percent of netnet (mktcap/NCAV, not just True/False)
     #      Will probably migrate to a more robust screener with configurable options
     def netnet(self):
@@ -133,3 +136,10 @@ class Index(models.Model):
                   ( mktcap / (float(self.CurrentAssets) - float(self.Liabilities)) > 0)
        except:
            return False
+
+    '''localcik is defined in pysec models, but needed for this model
+       There is probably a better way to handle this, but this works for now.
+       This problem came up when trying to separate pysec and screener tables.
+    '''
+    def localcik(self):
+        return '%s/%s/' % (DATA_DIR, self.cik)
