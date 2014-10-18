@@ -29,7 +29,7 @@ def prune():
         filings = pysec_index.objects.filter(cik=cik)
         dates = filings.values_list('date')
         # only keep the most recent
-        pysec_index.objects.filter(cik = cik[0]).exclude(date = max(dates)[0]).delete()
+        pysec_index.objects.filter(cik=cik).exclude(date=max(dates)[0]).delete()
     print '# of filings after pruning: ', pysec_index.objects.count()
 
 def insertFinancials():
