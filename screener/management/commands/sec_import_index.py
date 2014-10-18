@@ -39,14 +39,28 @@ def get_filing_list(year,qtr):
         date = r[86:98].strip()
         if date=='': date = None
         if r.strip()=='': continue
+        cik = r[74:86].strip()
         filing={'name':r[0:62].strip(),
                 'form':form,
-                'cik':r[74:86].strip(),
+                'cik':cik,
                 'date':date,
                 'quarter': quarter,
                 'filename':r[98:].strip()}
 
-        result.append(Index(**filing))
+        #TODO: new company could use cik from old company, but date should fix this...make sure
+        dbFiling = Index.objects.filter(cik=cik)
+
+        if dbFiling.count(): # This cik alread exists
+            newDate = int(re.sub('-','',str(date)))
+            oldDate = int(re.sub('-','',str(dbFiling[0].date)))
+            if newDate > oldDate:
+                print cik, ': This is a new filing, oldDate:', oldDate, ' newDate:', newDate
+                Index.objects.filter(cik=cik).delete()
+                result.append(Index(**filing))
+        else: # cik does not exist so add it
+            print cik, ': This filing does noe exist...adding it'
+            result.append(Index(**filing))
+
     return result
 
 #Commit all objects at once to speed up the process
@@ -69,6 +83,7 @@ class Command(NoArgsCommand):
     '''
     #TODO: Update this to only add new filings. For now, this creates a new
     #      database every time
+    #      Also need to delete quarters less than current quarter-3
     def handle_noargs(self, **options):
 
         year  = int(time.strftime("%Y"))
@@ -79,7 +94,6 @@ class Command(NoArgsCommand):
         else:                      qtr = 4
         for i in range(0,3):
             quarter = "%s%s" % (year,qtr)
-            Index.objects.filter(quarter=quarter).delete()
             objs = get_filing_list(year,qtr)
             commitObjs(objs)
             qtr -= 1
