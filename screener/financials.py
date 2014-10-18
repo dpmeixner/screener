@@ -71,7 +71,6 @@ def insertFinancials():
        else:
            ticker = filing.ticker
 
-       #print ticker
        if filing.ticker == 'N/A':
           continue
 
@@ -100,14 +99,15 @@ def insertFinancials():
 
 def insertXBRL():
 
-    ciks = pysec_index.objects.values_list('cik')
+    ciks = Index.objects.filter(ContextForInstants='').values_list('cik')
+    print ciks.count(), ' ciks need to be updated'
+    print ciks
     socket.setdefaulttimeout(30)
 
     count = 1
     for cik in ciks:
         print count, cik[0]
         count += 1
-        #print 'cik is ', cik[0]
         #TODO: figure out how to handle multiple records with same cik, this is not optimal
         try:
             filing = pysec_index.objects.get(cik=cik[0])
@@ -115,32 +115,23 @@ def insertXBRL():
             filing = pysec_index.objects.filter(cik=cik[0])[0]
 
         # initialize XBRL parser and populate assets and liability information
-        #TODO: investigate what is causing the exception when xbrl data exists
-        try:
-            x = filing.xbrl()
-        except:
-            if count > 100: # keep first 100 on harddisk for debug purposes
-                try:
-                    Index.objects.get(cik=cik[0]).rmlocalcik()
-                except:
-                    Index.objects.filter(cik=cik[0])[0].rmlocalcik()
-            #filing.error = 'XBRL filing exception'
-            #filing.save()
-            continue
-        else:
-            if count > 100:
-                try:
-                    Index.objects.get(cik=cik[0]).rmlocalcik()
-                except:
-                    Index.objects.filter(cik=cik[0])[0].rmlocalcik()
+        x = filing.xbrl()
 
+        if count > 10:
+            try:
+                Index.objects.get(cik=cik[0]).rmlocalcik()
+            except:
+                Index.objects.filter(cik=cik[0])[0].rmlocalcik()
+
+        #TODO: save something to the database so we at least know it's been looked at
         if x is None:
-            #filing.error = 'XBRL file DNE'
-            # TODO: when run on BBB, database is locked and this errors out
-            #filing.save()
+            print 'XBRL file DNE ', count, cik[0]
+            filing = Index.objects.filter(cik=cik[0])
+            if filing.count > 1:
+                filing = filing[0]
+            filing.ContextForInstants = "XBRL DNE"
+            filing.save()
             continue
-
-        #filing.save()
 
         # Sometimes this field is null, which throws an exception. This is a 
         # quick fix, but worth investigating further
