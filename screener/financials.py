@@ -22,10 +22,11 @@ def outputCounter(count):
 def prune():
 
     # get unique list of ciks
-    ciks = set(pysec_index.objects.values_list('cik'))
+    duplicates = pysec_index.objects.raw('SELECT id, cik FROM pysec_index GROUP BY cik HAVING COUNT(*) > 1')
     print '# of filings before pruning: ', pysec_index.objects.count()
-    for cik in ciks:
-        filings = pysec_index.objects.filter(cik = cik[0])
+    for d in duplicates:
+        cik = d.cik
+        filings = pysec_index.objects.filter(cik=cik)
         dates = filings.values_list('date')
         # only keep the most recent
         pysec_index.objects.filter(cik = cik[0]).exclude(date = max(dates)[0]).delete()
