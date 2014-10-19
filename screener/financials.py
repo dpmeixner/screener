@@ -115,7 +115,17 @@ def insertXBRL():
             filing = pysec_index.objects.filter(cik=cik[0])[0]
 
         # initialize XBRL parser and populate assets and liability information
-        x = filing.xbrl()
+        # This doesn't usually fail, but catch it just in case
+        try:
+            x = filing.xbrl()
+        except:
+            print '###DM: ERROR getting xbrl data'
+            filing = Index.objects.filter(cik=cik[0])
+            if filing.count > 1:
+                filing = filing[0]
+            filing.ContextForInstants = "XBRL Insert Error"
+            filing.save()
+            continue
 
         if count > 10:
             try:
