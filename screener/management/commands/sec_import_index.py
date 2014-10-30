@@ -6,6 +6,7 @@ import urllib,os,re,os.path
 from zipfile import ZipFile
 import time
 from django.db.transaction import commit_on_success
+from screener.models import Index as screener_index
 
 DATA_DIR = settings.DATA_DIR
 def removeNonAscii(s): return "".join(i for i in s if ord(i)<128)
@@ -20,11 +21,10 @@ def get_filing_list(year,qtr):
     # Download the data and save to a file
     fn='%s/company_%d_%d.zip' % (DATA_DIR, year,qtr)
 
-    if not os.path.exists(fn):
-        compressed_data=urllib.urlopen(url).read()
-        fileout=file(fn,'w')
-        fileout.write(compressed_data)
-        fileout.close()
+    compressed_data=urllib.urlopen(url).read()
+    fileout=file(fn,'w')
+    fileout.write(compressed_data)
+    fileout.close()
     
     # Extract the compressed file
     zip=ZipFile(fn)
@@ -57,6 +57,7 @@ def get_filing_list(year,qtr):
                 print cik, ': This is a new filing, oldDate:', oldDate, ' newDate:', newDate
                 Index.objects.filter(cik=cik).delete()
                 result.append(Index(**filing))
+                screener_index.objects.filter(cik=cik).delete()
         else: # cik does not exist so add it
             print cik, ': This filing does noe exist...adding it'
             result.append(Index(**filing))
